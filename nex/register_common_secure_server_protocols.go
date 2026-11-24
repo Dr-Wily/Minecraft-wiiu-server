@@ -177,7 +177,7 @@ func modifyCurrentGameAttribute(err error, packet nex.PacketInterface, callID ui
 		return nil, nexError
 	}
 
-	globals.Logger.Infof("Pretendo LAN : partie %d modifiée par %d : attribut %d du jeu = case %d, valeur 0x%08X", gid, connection.PID(), attribIndex, index, uint32(newValue))
+	globals.Logger.Infof("Partie %d modifiée par %d : attribut %d du jeu = case %d, valeur 0x%08X", gid, connection.PID(), attribIndex, index, uint32(newValue))
 
 	rmcResponse := nex.NewRMCSuccess(endpoint, nil)
 	rmcResponse.ProtocolID = matchmakeextension.ProtocolID
@@ -218,6 +218,14 @@ func registerCommonSecureServerProtocols() {
 	globals.MatchmakingManager.GetUserFriendPIDs = globals.GetUserFriendPIDs
 
 	commonMatchmakeExtensionProtocol.CleanupSearchMatchmakeSession = cleanupSearchMatchmakeSessionHandler
+	// * Journal de diagnostic : critères de chaque recherche de partie et attributs des parties créées (une partie
+	// * absente des résultats s'explique en les comparant à matchmaking.matchmake_sessions)
+	commonMatchmakeExtensionProtocol.OnAfterBrowseMatchmakeSession = func(packet nex.PacketInterface, searchCriteria matchmakingtypes.MatchmakeSessionSearchCriteria, resultRange types.ResultRange) {
+		globals.Logger.Infof("Recherche de partie de %d : %s", packet.Sender().PID(), searchCriteria.String())
+	}
+	commonMatchmakeExtensionProtocol.OnAfterCreateMatchmakeSessionWithParam = func(packet nex.PacketInterface, param matchmakingtypes.CreateMatchmakeSessionParam) {
+		globals.Logger.Infof("Partie créée par %d : mode %d, attributs %v", packet.Sender().PID(), param.SourceMatchmakeSession.GameMode, param.SourceMatchmakeSession.Attributes)
+	}
 	if !publicMatchmakingAllowed() {
 		globals.Logger.Warning("Public minigames are disabled for safety reasons.")
 		globals.Logger.Warning("Public matches were disabled with PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING=0.")

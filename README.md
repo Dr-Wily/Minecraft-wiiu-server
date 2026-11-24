@@ -91,4 +91,4 @@ All configuration options are handled via environment variables
 | `PN_MINECRAFT_FRIENDS_GRPC_PORT`          | Port for Friends gRPC service                                                                   | Yes                                           |
 | `PN_MINECRAFT_FRIENDS_GRPC_API_KEY`       | API key for Friends gRPC service                                                                | No (Assumed to be an open gRPC API)           |
 | `PN_MINECRAFT_HEALTH_CHECK_PORT`          | Port for the UDP health check                                                                                       | No |
-| `PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING`   | Set to "1" to enable public matchmaking (unsafe - game has 0 anti-cheat)                        | No (Assumed 0)                                | 
+| `PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING`   | Set to "0" to disable public matchmaking (public mini-games)                                    | No (Assumed 1 in this fork)                   | 
