@@ -3,6 +3,7 @@ package nex
 import (
 	"github.com/PretendoNetwork/minecraft-wiiu/globals"
 	"github.com/PretendoNetwork/nex-go/v2"
+	mmedatabase "github.com/PretendoNetwork/nex-protocols-common-go/v2/matchmake-extension/database"
 	"github.com/PretendoNetwork/nex-go/v2/types"
 	commonglobals "github.com/PretendoNetwork/nex-protocols-common-go/v2/globals"
 	"github.com/PretendoNetwork/nex-protocols-common-go/v2/match-making/database"
@@ -126,6 +127,59 @@ func gameSpecificCanJoinMatchmakeSession(manager *commonglobals.MatchmakingManag
 	return nex.NewError(nex.ResultCodes.RendezVous.NotFriend, "User is not a friend of host's friends")
 }
 
+// * Pretendo LAN : Minecraft numérote à partir de 1 l'attribut de ModifyCurrentGameAttribute (nex-protocols-common-go
+// * le compte à partir de 0). Pour rendre publique une partie, le jeu demande « attribut 1 = 0x03030881 », la version
+// * publique du premier attribut (0x03020881 = entre amis) : la bibliothèque écrivait le deuxième, la partie restait
+// * « entre amis » (attribut 0, cf. gameSpecificCanJoinMatchmakeSession) et la recherche des autres consoles, qui
+// * demande l'attribut 0 = 0x03030881, ne la trouvait jamais.
+func modifyCurrentGameAttribute(err error, packet nex.PacketInterface, callID uint32, gid types.UInt32, attribIndex types.UInt32, newValue types.UInt32) (*nex.RMCMessage, *nex.Error) {
+	if err != nil {
+		globals.Logger.Error(err.Error())
+		return nil, nex.NewError(nex.ResultCodes.Core.InvalidArgument, "change_error")
+	}
+
+	connection := packet.Sender().(*nex.PRUDPConnection)
+	endpoint := connection.Endpoint().(*nex.PRUDPEndPoint)
+
+	index := uint32(attribIndex)
+	if index > 0 {
+		index--
+	}
+
+	globals.MatchmakingManager.Mutex.Lock()
+
+	session, _, nexError := mmedatabase.GetMatchmakeSessionByID(globals.MatchmakingManager, endpoint, uint32(gid))
+	if nexError != nil {
+		globals.MatchmakingManager.Mutex.Unlock()
+		return nil, nexError
+	}
+
+	if !session.Gathering.OwnerPID.Equals(connection.PID()) {
+		globals.MatchmakingManager.Mutex.Unlock()
+		return nil, nex.NewError(nex.ResultCodes.RendezVous.PermissionDenied, "change_error")
+	}
+
+	if int(index) >= len(session.Attributes) {
+		globals.MatchmakingManager.Mutex.Unlock()
+		return nil, nex.NewError(nex.ResultCodes.Core.InvalidIndex, "change_error")
+	}
+
+	nexError = mmedatabase.UpdateGameAttribute(globals.MatchmakingManager, uint32(gid), index, uint32(newValue))
+	globals.MatchmakingManager.Mutex.Unlock()
+	if nexError != nil {
+		return nil, nexError
+	}
+
+	globals.Logger.Infof("Pretendo LAN : partie %d modifiée par %d : attribut %d du jeu = case %d, valeur 0x%08X", gid, connection.PID(), attribIndex, index, uint32(newValue))
+
+	rmcResponse := nex.NewRMCSuccess(endpoint, nil)
+	rmcResponse.ProtocolID = matchmakeextension.ProtocolID
+	rmcResponse.MethodID = matchmakeextension.MethodModifyCurrentGameAttribute
+	rmcResponse.CallID = callID
+
+	return rmcResponse, nil
+}
+
 func registerCommonSecureServerProtocols() {
 	secureProtocol := secure.NewProtocol()
 	globals.SecureEndpoint.RegisterServiceProtocol(secureProtocol)
@@ -152,6 +206,7 @@ func registerCommonSecureServerProtocols() {
 	commonMatchmakeExtensionProtocol := commonmatchmakeextension.NewCommonProtocol(matchmakeExtensionProtocol)
 	commonMatchmakeExtensionProtocol.SetManager(globals.MatchmakingManager)
 	commonMatchmakeExtensionProtocol.CanJoinMatchmakeSession = gameSpecificCanJoinMatchmakeSession
+	matchmakeExtensionProtocol.SetHandlerModifyCurrentGameAttribute(modifyCurrentGameAttribute) // * Pretendo LAN
 
 	globals.MatchmakingManager.GetUserFriendPIDs = globals.GetUserFriendPIDs
 
