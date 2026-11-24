@@ -72,6 +72,13 @@ func stubBrowseMatchmakeSession(err error, packet nex.PacketInterface, callID ui
 	return rmcResponse, nil
 }
 
+// publicMatchmakingAllowed : parties publiques (mini-jeux ouverts à tous) acceptées sauf si
+// PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING=0. Ce serveur sert un réseau local où les joueurs se connaissent ;
+// l'original de Pretendo les refuse par défaut (serveur public).
+func publicMatchmakingAllowed() bool {
+	return os.Getenv("PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING") != "0"
+}
+
 func gameSpecificCanJoinMatchmakeSession(manager *commonglobals.MatchmakingManager, pid types.PID, session matchmakingtypes.MatchmakeSession) *nex.Error {
 	if !session.OpenParticipation {
 		return nex.NewError(nex.ResultCodes.RendezVous.PermissionDenied, "Gathering is not open to new participants")
@@ -83,7 +90,7 @@ func gameSpecificCanJoinMatchmakeSession(manager *commonglobals.MatchmakingManag
 	// * This is the only difference between a public and a Friends match
 	isPublic = (attrib & 0xFFFFFF) == 0x30881
 
-	if isPublic && os.Getenv("PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING") == "1" {
+	if isPublic && publicMatchmakingAllowed() {
 		//globals.Logger.Info("Game is public")
 		return nil
 	}
@@ -211,9 +218,9 @@ func registerCommonSecureServerProtocols() {
 	globals.MatchmakingManager.GetUserFriendPIDs = globals.GetUserFriendPIDs
 
 	commonMatchmakeExtensionProtocol.CleanupSearchMatchmakeSession = cleanupSearchMatchmakeSessionHandler
-	if os.Getenv("PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING") != "1" {
+	if !publicMatchmakingAllowed() {
 		globals.Logger.Warning("Public minigames are disabled for safety reasons.")
-		globals.Logger.Warning("To enable public matches, set PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING=1.")
+		globals.Logger.Warning("Public matches were disabled with PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING=0.")
 		matchmakeExtensionProtocol.SetHandlerBrowseMatchmakeSession(stubBrowseMatchmakeSession)
 
 		// * Make sure any unused MM protocols aren't able to show sessions

@@ -1,3 +1,15 @@
+# Minecraft: Wii U Edition server (Pretendo LAN fork)
+
+Fork of [PretendoNetwork/minecraft-wiiu](https://github.com/PretendoNetwork/minecraft-wiiu) maintained for [Pretendo LAN](https://github.com/Dr-Wily/pretendo-LAN), a self-hosted Pretendo Network for local networks.
+
+Changes from upstream:
+- public matches (public mini-games) are allowed unless `PN_MINECRAFT_ALLOW_PUBLIC_MATCHMAKING=0`;
+- `ModifyCurrentGameAttribute`: Minecraft sends a 1-based attribute index (public mini-games were stored as friends-only and never found by other consoles);
+- three nex-go fixes applied at build time (Dockerfile);
+- matchmaking diagnostics in the log (search criteria, created sessions, attribute changes).
+
+---
+
 # Minecraft Wii U Edition (Wii U) replacement server
 Includes both the authentication and secure servers
 
