@@ -3,10 +3,10 @@ package nex
 import (
 	"github.com/PretendoNetwork/minecraft-wiiu/globals"
 	"github.com/PretendoNetwork/nex-go/v2"
-	mmedatabase "github.com/PretendoNetwork/nex-protocols-common-go/v2/matchmake-extension/database"
 	"github.com/PretendoNetwork/nex-go/v2/types"
 	commonglobals "github.com/PretendoNetwork/nex-protocols-common-go/v2/globals"
 	"github.com/PretendoNetwork/nex-protocols-common-go/v2/match-making/database"
+	mmedatabase "github.com/PretendoNetwork/nex-protocols-common-go/v2/matchmake-extension/database"
 	commonnattraversal "github.com/PretendoNetwork/nex-protocols-common-go/v2/nat-traversal"
 	commonsecure "github.com/PretendoNetwork/nex-protocols-common-go/v2/secure-connection"
 	nattraversal "github.com/PretendoNetwork/nex-protocols-go/v2/nat-traversal"
